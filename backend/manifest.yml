@@ -1,0 +1,113 @@
+name: FoodieFinds
+
+entities:
+  User:
+    authenticable: true
+    properties:
+      - name
+      - name: email
+        type: email
+      - name: role
+        type: choice
+        options:
+          values: [admin, chef, customer]
+        default: customer
+    policies:
+      create:
+        - access: admin
+      read:
+        - access: restricted
+          allow: User
+          condition: self
+      update:
+        - access: restricted
+          allow: User
+          condition: self
+      delete:
+        - access: admin
+      signup:
+        - access: public
+
+  Restaurant:
+    properties:
+      - name: name
+        type: string
+      - name: description
+        type: text
+      - name: cuisine
+        type: choice
+        options:
+          values: [Italian, Mexican, Japanese, American, Indian]
+        default: American
+      - name: coverPhoto
+        type: image
+        options:
+          sizes:
+            thumbnail: { width: 400, height: 300 }
+            large: { width: 1024, height: 768 }
+    belongsTo:
+      - name: owner
+        entity: User
+    policies:
+      create:
+        - access: restricted
+          allow: User
+          condition: "user.role == 'chef'"
+      read:
+        - access: public
+      update:
+        - access: restricted
+          allow: User
+          condition: self # owner can update
+      delete:
+        - access: restricted
+          allow: User
+          condition: self # owner can delete
+
+  MenuItem:
+    properties:
+      - name: name
+        type: string
+      - name: description
+        type: text
+      - name: price
+        type: money
+        options:
+          currency: 'USD'
+      - name: category
+        type: choice
+        options:
+          values: [Appetizer, Main, Dessert, Beverage]
+        default: Main
+      - name: photo
+        type: image
+        options:
+          sizes:
+            thumbnail: { width: 200, height: 200 }
+    belongsTo:
+      - name: restaurant
+        entity: Restaurant
+    policies:
+      create:
+        - access: restricted
+          allow: User
+          # only the restaurant owner can add menu items
+          condition: "user.id == restaurant.ownerId"
+      read:
+        - access: public
+      update:
+        - access: restricted
+          allow: User
+          condition: "user.id == restaurant.ownerId"
+      delete:
+        - access: restricted
+          allow: User
+          condition: "user.id == restaurant.ownerId"
+
+# Health check endpoint for connection testing
+endpoints:
+  health:
+    path: /api/health
+    method: GET
+    policies: []
+    handler: healthCheck
